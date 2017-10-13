@@ -1,4 +1,7 @@
 function rand!(coup::MaximalCoupling, xy::AbstractVector)
+    length(xy) == length(coup) ||
+        throw(DimensionMismatch("Output size inconsistent with sample length."))
+
     X = rand(coup.p)
     pX = pdf(coup.p, X)
     qX = pdf(coup.q, X)
@@ -17,13 +20,13 @@ function rand!(coup::MaximalCoupling, xy::AbstractVector)
             end
         end
     end
-    xy[1] = X
-    xy[2] = Y
+    xy[1:length(coup.p)] = X
+    xy[length(coup.p)+1:end] = Y
     return xy
 end
 
 function rand(coup::MaximalCoupling, n::Int64)
-    xy = Matrix{Float64}(2, n)
+    xy = Matrix{Float64}(length(coup), n)
     for i in 1:n
         rand!(coup, view(xy, :, i))
     end
@@ -31,7 +34,7 @@ function rand(coup::MaximalCoupling, n::Int64)
 end
 
 function rand(coup::MaximalCoupling)
-    xy = Vector{Float64}(2)
+    xy = Vector{Float64}(length(coup))
     rand!(coup, xy)
     return xy
 end
