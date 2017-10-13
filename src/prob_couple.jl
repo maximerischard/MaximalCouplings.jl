@@ -32,7 +32,7 @@ end
 """ Find all the points where the PDFs of the two distributions in a coupling
     cross. Also return which PDF dominates in each segment.
 """
-function get_crossings(coup::MaximalCoupling, nquantiles::Int)
+function get_crossings{U1<:UnivariateDistribution, U2<:UnivariateDistribution}(coup::MaximalCoupling{U1,U2}, nquantiles::Int)
     # Start by comparing the PDFs on a grid of points given by the
     # merged quantiles of the two distributions.
     pquant = quantile(coup.p, linspace(0,1,nquantiles)[2:end-1])
@@ -65,9 +65,9 @@ function get_crossings(coup::MaximalCoupling, nquantiles::Int)
 end
 
 """ Probability that X=Y (coupling event) in a maximal coupling
-    of two distributions.
+    of two univariate distributions.
 """
-function prob_couple(coup::MaximalCoupling; nquantiles::Int=100)
+function prob_couple{U1<:UnivariateDistribution, U2<:UnivariateDistribution}(coup::MaximalCoupling{U1,U2}; nquantiles::Int=100)
     crossed_x, pgreater = get_crossings(coup, nquantiles)
     xbefore = -Inf # could use minimum support of p and q instead
     pcouple = 0.0
