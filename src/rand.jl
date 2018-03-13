@@ -5,15 +5,13 @@ function rand!(coup::MaximalCoupling, xy::AbstractVector)
     X = rand(coup.p)
     pX = pdf(coup.p, X)
     qX = pdf(coup.q, X)
-    𝒰 = Uniform(0.0, pX)
     local Y
-    if rand(𝒰) < qX
+    if (rand()*pX) < qX
         Y = X
     else
         while true
             Ystar = rand(coup.q)
-            𝒰star = Uniform(0.0, pdf(coup.q, Ystar))
-            Ustar = rand(𝒰star)
+            Ustar = rand() * pdf(coup.q, Ystar)
             if Ustar > pdf(coup.p, Ystar)
                 Y = Ystar
                 break

@@ -35,8 +35,8 @@ end
 function get_crossings{U1<:UnivariateDistribution, U2<:UnivariateDistribution}(coup::MaximalCoupling{U1,U2}, nquantiles::Int)
     # Start by comparing the PDFs on a grid of points given by the
     # merged quantiles of the two distributions.
-    pquant = quantile(coup.p, linspace(0,1,nquantiles)[2:end-1])
-    qquant = quantile(coup.q, linspace(0,1,nquantiles)[2:end-1])
+    pquant = quantile.(coup.p, linspace(0,1,nquantiles)[2:end-1])
+    qquant = quantile.(coup.q, linspace(0,1,nquantiles)[2:end-1])
     pq_quantiles = merge_sorted(pquant, qquant)
     
     # function that returns the difference of the two PDFs
