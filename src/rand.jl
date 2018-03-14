@@ -3,19 +3,34 @@ function rand!(coup::MaximalCoupling, xy::AbstractVector)
         throw(DimensionMismatch("Output size inconsistent with sample length."))
 
     X = rand(coup.p)
-    pX = pdf(coup.p, X)
-    qX = pdf(coup.q, X)
+    log_pX = logpdf(coup.p, X)
+    log_qX = logpdf(coup.q, X)
+    logU = log_pX - randexp()
     local Y
-    if (rand()*pX) < qX
+    if logU - log_qX <= eps()
         Y = X
     else
-        while true
+        found_uncoupled = false
+        for _ in 1:1_000_000 # give up after a while
             Ystar = rand(coup.q)
-            Ustar = rand() * pdf(coup.q, Ystar)
-            if Ustar > pdf(coup.p, Ystar)
+            log_pYstar = logpdf(coup.p, Ystar)
+            log_qYstar = logpdf(coup.q, Ystar)
+            if log_qYstar < log_pYstar
+                continue
+            end
+            logUstar = log_qYstar - randexp()
+            if logUstar - log_pYstar >= -eps()
                 Y = Ystar
+                found_uncoupled = true
                 break
             end
+        end
+        if !found_uncoupled
+            println("failed to find uncoupled sample between ", coup.p, "\n and \n", coup.q)
+        end
+        if !found_uncoupled
+            # just return a coupled sample after all
+            Y = X
         end
     end
     xy[1:length(coup.p)] = X
