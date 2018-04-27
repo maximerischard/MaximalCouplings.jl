@@ -32,7 +32,7 @@ end
 """ Find all the points where the PDFs of the two distributions in a coupling
     cross. Also return which PDF dominates in each segment.
 """
-function get_crossings{U1<:UnivariateDistribution, U2<:UnivariateDistribution}(coup::MaximalCoupling{U1,U2}, nquantiles::Int)
+function get_crossings{U1<:ContinuousUnivariateDistribution, U2<:ContinuousUnivariateDistribution}(coup::MaximalCoupling{U1,U2}, nquantiles::Int)
     # Start by comparing the PDFs on a grid of points given by the
     # merged quantiles of the two distributions.
     pquant = quantile.(coup.p, linspace(0,1,nquantiles)[2:end-1])
@@ -67,7 +67,7 @@ end
 """ Probability that X=Y (coupling event) in a maximal coupling
     of two univariate distributions.
 """
-function prob_couple{U1<:UnivariateDistribution, U2<:UnivariateDistribution}(coup::MaximalCoupling{U1,U2}; nquantiles::Int=100)
+function prob_couple(coup::MaximalCoupling{U1,U2}; nquantiles::Int=100) where {U1<:ContinuousUnivariateDistribution, U2<:ContinuousUnivariateDistribution}
     crossed_x, pgreater = get_crossings(coup, nquantiles)
     xbefore = -Inf # could use minimum support of p and q instead
     pcouple = 0.0
@@ -85,5 +85,24 @@ function prob_couple{U1<:UnivariateDistribution, U2<:UnivariateDistribution}(cou
         pcouple += cdf(coup.p, Inf) - cdf(coup.p, xbefore)
     end
     @assert 0.0 <= pcouple <= 1.0
+    return pcouple
+end
+function prob_couple(coup::MaximalCoupling{U1,U2}; nquantiles::Int=100) where {U1<:DiscreteDistribution, U2<:DiscreteDistribution}
+    p_finite_support = isfinite(minimum(coup.p)) && isfinite(maximum(coup.p))
+    q_finite_support = isfinite(minimum(coup.q)) && isfinite(maximum(coup.q))
+    local overlap
+    if p_finite_support && q_finite_support
+        p_support = support(coup.p)
+        q_support = support(coup.q)
+        overlap = p_support ∩ q_support
+    elseif p_finite_support
+        overlap = support(coup.p)
+    elseif q_finite_support
+        overlap = support(coup.q)
+    else
+        throw(DomainError()) # ToDo: implement
+    end
+    prob_min = [min(pdf(coup.p, x), pdf(q, x)) for x in overlap]
+    prob_couple = sum(prob_min)
     return pcouple
 end
