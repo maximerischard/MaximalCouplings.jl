@@ -1,4 +1,4 @@
-import Base: length
+import Base: length, eltype
 
 type MaximalCoupling{U1<:Distribution, U2<:Distribution}
     p::U1
@@ -13,3 +13,4 @@ end
 MaximalCoupling{U1<:Distribution, U2<:Distribution}(p::U1, q::U2) = MaximalCoupling{U1, U2}(p, q)
 
 length(coup::MaximalCoupling) = length(coup.p) + length(coup.q)
+eltype(coup::MaximalCoupling) = Union{eltype(coup.p), eltype(coup.q)}

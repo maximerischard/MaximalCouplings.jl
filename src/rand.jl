@@ -104,7 +104,7 @@ end
 
 
 function rand(coup::MaximalCoupling, n::Int64)
-    xy = Matrix{Float64}(length(coup), n)
+    xy = Matrix{eltype(coup)}(length(coup), n)
     for i in 1:n
         rand!(coup, view(xy, :, i))
     end
@@ -112,7 +112,7 @@ function rand(coup::MaximalCoupling, n::Int64)
 end
 
 function rand(coup::MaximalCoupling)
-    xy = Vector{Float64}(length(coup))
+    xy = Vector{eltype(coup)}(length(coup))
     rand!(coup, xy)
     return xy
 end

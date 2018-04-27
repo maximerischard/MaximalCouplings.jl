@@ -102,7 +102,7 @@ function prob_couple(coup::MaximalCoupling{U1,U2}; nquantiles::Int=100) where {U
     else
         throw(DomainError()) # ToDo: implement
     end
-    prob_min = [min(pdf(coup.p, x), pdf(q, x)) for x in overlap]
-    prob_couple = sum(prob_min)
+    prob_min = [min(pdf(coup.p, x), pdf(coup.q, x)) for x in overlap]
+    pcouple = sum(prob_min)
     return pcouple
 end
