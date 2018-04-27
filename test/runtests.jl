@@ -18,29 +18,55 @@ end # testset
 # Probabilistic test that the probability given by `prob_couple`
 # matches the fraction of samples yielded by `rand` that are coupled.
 @testset "Probability of Coupling" begin
-    c_normgamma = MaximalCoupling(Normal(1,2), Gamma(1, 2))
+    coup = MaximalCoupling(Normal(1,2), Gamma(1, 2))
     nsamples = 10^7
-    xy_pairs = rand(c_normgamma, nsamples);
-    pcouple = prob_couple(c_normgamma)
+    xy_pairs = rand(coup, nsamples);
+    pcouple = prob_couple(coup)
     frac_coupled = mean(xy_pairs[1,:] .== xy_pairs[2,:])
     se = sqrt(pcouple  * (1-pcouple) / nsamples)
     deviation = (pcouple - frac_coupled) / se
     @test abs(deviation) < 5 
+    @test eltype(coup) == Float64
+    @test eltype(coup) == eltype(xy_pairs)
+    @test eltype(coup) == eltype(rand(coup))
 end # testset
 
 @testset "Multivariate Couplings" begin
     n=MultivariateNormal([1., 1.], [[3., 1.]'; [1., 4.]'])
     ln=MvLogNormal([0., 0.], [[1., 0.1]'; [0.1, 1.]'])
-    c = MaximalCoupling(n, ln)
+    coup = MaximalCoupling(n, ln)
     # Dimensionality checks
-    @test length(c) == 4
-    @test length(rand(c)) == 4
-    @test size(rand(c, 5)) == (4, 5)
-    sample = rand(c, 10^4)
+    @test length(coup) == 4
+    @test length(rand(coup)) == 4
+    @test size(rand(coup, 5)) == (4, 5)
+    sample = rand(coup, 10^4)
     equal13 = sample[1,:] .== sample[3,:]
     equal24 = sample[2,:] .== sample[4,:]
     @test all(equal13 .== equal24)
     # test that some samples are coupled
     @test sum(equal13) > 0
+    @test eltype(coup) == Float64
+    @test eltype(coup) == eltype(sample)
+    @test eltype(coup) == eltype(rand(coup))
 end
 
+@testset "Discrete Couplings" begin
+    d1 = Poisson(4.2)
+    d2 = Categorical([0.1, 0.2, 0.3, 0.4])
+    coup = MaximalCoupling(d1, d2)
+    # Dimensionality checks
+    @test length(coup) == 2
+    @test length(rand(coup)) == 2
+    @test size(rand(coup, 5)) == (2, 5)
+    pcouple = prob_couple(coup)
+
+    nsamples = 10^7
+    xy_pairs = rand(coup, nsamples);
+    frac_coupled = mean(xy_pairs[1,:] .== xy_pairs[2,:])
+    se = sqrt(pcouple  * (1-pcouple) / nsamples)
+    deviation = (pcouple - frac_coupled) / se
+    @test abs(deviation) < 5 
+    @test eltype(coup) == Int64
+    @test eltype(coup) == eltype(xy_pairs)
+    @test eltype(coup) == eltype(rand(coup))
+end
