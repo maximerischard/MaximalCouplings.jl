@@ -49,9 +49,6 @@ end
 function _rand_discrete!(p::D1, q::D2, xy::V) where {D1 <: DiscreteDistribution, D2 <: DiscreteDistribution, V<:AbstractVector}
     q_support = support(q)
     # overlap = p_support ∩ q_support
-    # if !issorted(overlap)
-        # sort!(overlap)
-    # end
     # prob_min = [min(pdf(p, x), pdf(q, x)) for x in overlap]
     # prob_couple = sum(prob_min)
 
