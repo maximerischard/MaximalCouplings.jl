@@ -1,6 +1,6 @@
 using StatsBase: Weights
 
-function _rand_continuous!(p::D1, q::D2, xy::V) where {D1 <: Distribution, D2 <: Distribution, V<:AbstractVector}
+function _rand_continuous(p::D1, q::D2) where {D1 <: Distribution, D2 <: Distribution}
     X = rand(p)
     log_pX = logpdf(p, X)
     log_qX = logpdf(q, X)
@@ -42,11 +42,9 @@ function _rand_continuous!(p::D1, q::D2, xy::V) where {D1 <: Distribution, D2 <:
             Y = X
         end
     end
-    xy[1:length(p)] = X
-    xy[length(p)+1:end] = Y
-    return xy
+    return X, Y
 end
-function _rand_discrete!(p::D1, q::D2, xy::V) where {D1 <: DiscreteDistribution, D2 <: DiscreteDistribution, V<:AbstractVector}
+function _rand_discrete(p::D1, q::D2) where {D1 <: DiscreteDistribution, D2 <: DiscreteDistribution}
     q_support = support(q)
     # overlap = p_support ∩ q_support
     # prob_min = [min(pdf(p, x), pdf(q, x)) for x in overlap]
@@ -71,45 +69,44 @@ function _rand_discrete!(p::D1, q::D2, xy::V) where {D1 <: DiscreteDistribution,
 
     end
     
-    xy[1:length(p)] = X
-    xy[length(p)+1:end] = Y
-    return xy
+    return X, Y
 end
 
-function rand!(coup::MaximalCoupling{D1,D2}, xy::AbstractVector) where {D1, D2}
-    length(xy) == length(coup) ||
-        throw(DimensionMismatch("Output size inconsistent with sample length."))
-    _rand_continuous!(coup.p, coup.q, xy)
+function rand(coup::MaximalCoupling{D1,D2}) where {D1, D2}
+    _rand_continuous(coup.p, coup.q)
 end
-function rand!(coup::MaximalCoupling{D1,D2}, xy::AbstractVector) where {D1<:DiscreteDistribution, D2<:DiscreteDistribution}
-    length(xy) == length(coup) ||
-        throw(DimensionMismatch("Output size inconsistent with sample length."))
+function rand(coup::MaximalCoupling{D1,D2}) where {D1<:DiscreteDistribution, D2<:DiscreteDistribution}
     p_finite_support = isfinite(minimum(coup.p)) && isfinite(maximum(coup.p))
     q_finite_support = isfinite(minimum(coup.q)) && isfinite(maximum(coup.q))
     if q_finite_support
-        return _rand_discrete!(coup.p, coup.q, xy)
+        return _rand_discrete(coup.p, coup.q)
     elseif p_finite_support
         nx = length(coup.p)
         ny = length(coup.q)
-        yx = view(xy, vcat(nx+1:nx+ny, 1:nx))
-        return _rand_discrete!(coup.q, coup.p, yx)
+        Y, X = _rand_discrete(coup.q, coup.p)
+        return X, Y
     else
-        return _rand_continuous!(coup.p, coup.q, xy)
+        return _rand_continuous(coup.p, coup.q)
     end
 end
 
-
-
-function rand(coup::MaximalCoupling, n::Int64)
-    xy = Matrix{eltype(coup)}(length(coup), n)
+function rand(coup::MaximalCoupling{D1, D2}, n::Int64) where {D1, D2}
+    X = Vector{eltype(coup)}(n)
+    Y = Vector{eltype(coup)}(n)
     for i in 1:n
-        rand!(coup, view(xy, :, i))
+        xi, yi = rand(coup)
+        X[i] = xi
+        Y[i] = yi
     end
-    return xy
+    return X, Y
 end
-
-function rand(coup::MaximalCoupling)
-    xy = Vector{eltype(coup)}(length(coup))
-    rand!(coup, xy)
-    return xy
+function rand(coup::MaximalCoupling{D1, D2}, n::Int64) where {D1 <: MultivariateDistribution, D2 <: MultivariateDistribution}
+    X = Matrix{eltype(coup)}(length(coup), n)
+    Y = Matrix{eltype(coup)}(length(coup), n)
+    for i in 1:n
+        xi, yi = rand(coup)
+        X[:, i] = xi
+        Y[:, i] = yi
+    end
+    return X, Y
 end
