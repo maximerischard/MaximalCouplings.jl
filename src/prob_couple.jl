@@ -6,7 +6,7 @@
 function merge_sorted(x, y)  
     nx = length(x)
     ny = length(y)
-    merged = Vector{eltype(x)}(nx+ny)
+    merged = Vector{eltype(x)}(undef, nx+ny)
     ix=1
     iy=1
     for ixy in 1:(nx+ny)
@@ -32,42 +32,47 @@ end
 """ Find all the points where the PDFs of the two distributions in a coupling
     cross. Also return which PDF dominates in each segment.
 """
-function get_crossings{U1<:ContinuousUnivariateDistribution, U2<:ContinuousUnivariateDistribution}(coup::MaximalCoupling{U1,U2}, nquantiles::Int)
+function get_crossings(coup::MaximalCoupling, nquantiles::Int)
     # Start by comparing the PDFs on a grid of points given by the
     # merged quantiles of the two distributions.
-    pquant = quantile.(coup.p, linspace(0,1,nquantiles)[2:end-1])
-    qquant = quantile.(coup.q, linspace(0,1,nquantiles)[2:end-1])
+    pquant = quantile.(coup.p, range(0, stop=1, length=nquantiles)[2:end-1])
+    qquant = quantile.(coup.q, range(0, stop=1, length=nquantiles)[2:end-1])
     pq_quantiles = merge_sorted(pquant, qquant)
     
     # function that returns the difference of the two PDFs
     pq_diff(x) = pdf(coup.p, x) - pdf(coup.q, x)
     
-    # for each point, which marginal distribution
-    # has the highest PDF?
-    p_gt_q = pq_diff.(pq_quantiles) .> 0
-    # find the indices of the crossing points of the two PDFs
-    crossed_int = diff(p_gt_q)
-    crossed_indx = findin(crossed_int, [-1,1])
-    
-    # For each crossing point, find the exact x at which the PDFs
-    # cross, and also return which PDF is greater.
-    ncrosses = length(crossed_indx)
-    pgreater = Vector{Bool}(ncrosses+1)
-    pgreater[1] = pq_diff(minimum(pq_quantiles)) > 0
-    crossed_x = Vector{Float64}(ncrosses)
-    for icross in 1:ncrosses
-        xbefore = pq_quantiles[crossed_indx[icross]]
-        xafter = pq_quantiles[crossed_indx[icross]+1]
-        crossed_x[icross] = fzero(pq_diff, xbefore, xafter)
-        pgreater[icross+1] = pq_diff(xafter) > 0
+    # p(x) greater than q(x)
+    p_gt_q = pq_diff(pq_quantiles[1]) >= 0
+    xbefore = -Inf
+    crossed_x = Float64[]
+    pgreater = Bool[p_gt_q]
+    for (idx, x) in enumerate(pq_quantiles)
+        x = pq_quantiles[idx]
+        if (
+            (p_gt_q) # currently expect p(x) > q(x)
+            && pq_diff(x) < 0 # but see p(x) < q(x)
+           ) || ( # or
+            !(p_gt_q)
+            && pq_diff(x) > 0
+           )
+            # p&q have crossed!
+            # push!(crossed_indx, idx)
+            p_gt_q = !p_gt_q # switch record of dominant PDF
+
+            push!(crossed_x, fzero(pq_diff, xbefore, x))
+            push!(pgreater, p_gt_q)
+        end
+        xbefore = x
     end
+    
     return crossed_x, pgreater
 end
 
 """ Probability that X=Y (coupling event) in a maximal coupling
     of two univariate distributions.
 """
-function prob_couple(coup::MaximalCoupling{U1,U2}; nquantiles::Int=100) where {U1<:ContinuousUnivariateDistribution, U2<:ContinuousUnivariateDistribution}
+function prob_couple(coup::MaximalCoupling; nquantiles::Int=100)
     crossed_x, pgreater = get_crossings(coup, nquantiles)
     xbefore = -Inf # could use minimum support of p and q instead
     pcouple = 0.0

@@ -1,5 +1,3 @@
-using StatsBase: Weights
-
 function _rand_continuous(p::D1, q::D2) where {D1 <: Distribution, D2 <: Distribution}
     X = rand(p)
     log_pX = logpdf(p, X)
@@ -91,8 +89,8 @@ function rand(coup::MaximalCoupling{D1,D2}) where {D1<:DiscreteDistribution, D2<
 end
 
 function rand(coup::MaximalCoupling{D1, D2}, n::Int64) where {D1, D2}
-    X = Vector{eltype(coup)}(n)
-    Y = Vector{eltype(coup)}(n)
+    X = Vector{eltype(coup)}(undef, n)
+    Y = Vector{eltype(coup)}(undef, n)
     for i in 1:n
         xi, yi = rand(coup)
         X[i] = xi
@@ -101,8 +99,8 @@ function rand(coup::MaximalCoupling{D1, D2}, n::Int64) where {D1, D2}
     return X, Y
 end
 function rand(coup::MaximalCoupling{D1, D2}, n::Int64) where {D1 <: MultivariateDistribution, D2 <: MultivariateDistribution}
-    X = Matrix{eltype(coup)}(length(coup), n)
-    Y = Matrix{eltype(coup)}(length(coup), n)
+    X = Matrix{eltype(coup)}(undef, length(coup), n)
+    Y = Matrix{eltype(coup)}(undef, length(coup), n)
     for i in 1:n
         xi, yi = rand(coup)
         X[:, i] = xi

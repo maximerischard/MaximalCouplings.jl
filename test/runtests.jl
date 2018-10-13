@@ -1,6 +1,8 @@
 using MaximalCouplings
 using Distributions
-using Base.Test
+using Test
+using Random
+using Random: rand, rand!
 
 # For two distributions that are the same, the maximal coupling should
 # be perfect.
