@@ -105,9 +105,15 @@ function prob_couple(coup::MaximalCoupling{U1,U2}; nquantiles::Int=100) where {U
     elseif q_finite_support
         overlap = support(coup.q)
     else
-        throw(DomainError()) # ToDo: implement
+        approx_min = min(quantile(coup.p, 1e-10), quantile(coup.q, 1e-10))
+        approx_max = max(quantile(coup.p, 1-1e-10), quantile(coup.q, 1-1e-10))
+        overlap = approx_min:approx_max
+        @assert length(overlap) < 10^5 # otherwise it'll take too long
+        # if this is an issue, we should consider using an adaptation
+        # of the crossings-detection method for continuous distributions
     end
-    prob_min = [min(pdf(coup.p, x), pdf(coup.q, x)) for x in overlap]
-    pcouple = sum(prob_min)
+    # prob_min = [min(pdf(coup.p, x), pdf(coup.q, x)) for x in overlap]
+    # pcouple = sum(prob_min)
+    pcouple = sum(x -> min(pdf(coup.p, x), pdf(coup.q, x)), overlap)
     return pcouple
 end

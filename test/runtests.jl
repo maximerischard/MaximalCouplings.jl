@@ -60,10 +60,92 @@ end # testset
     @test eltype(coup) == eltype(rand(coup)[1])
     @test eltype(coup) == eltype(rand(coup)[2])
 end
+@testset "Discrete Couplings - finite+finite support " begin
+    d1 = Categorical([0.05, 0.05, 0.2, 0.3, 0.3, 0.1])
+    d2 = Categorical([0.1, 0.2, 0.3, 0.4])
+    coup = MaximalCoupling(d1, d2)
+    # Dimensionality checks
+    @test length(coup) == 1
+    @test length(rand(coup)[1]) == 1
+    @test length(rand(coup)[2]) == 1
+    @test size(rand(coup, 5)[1]) == size(rand(d1, 5))
+    @test size(rand(coup, 5)[2]) == size(rand(d2, 5))
+    @test size(rand(coup, 5)[1]) == (5,)
+    @test size(rand(coup, 5)[2]) == (5,)
+    pcouple = prob_couple(coup)
 
-@testset "Discrete Couplings" begin
+    nsamples = 10^7
+    X, Y = rand(coup, nsamples)
+    frac_coupled = mean(X .== Y)
+    se = sqrt(pcouple  * (1-pcouple) / nsamples)
+    deviation = (pcouple - frac_coupled) / se
+    @test abs(deviation) < 5 
+    @test eltype(coup) == Int64
+    @test eltype(coup) == eltype(X)
+    @test eltype(coup) == eltype(Y)
+    @test eltype(coup) == eltype(rand(coup)[1])
+    @test eltype(coup) == eltype(rand(coup)[2])
+end
+
+@testset "Discrete Couplings - infinite+finite support " begin
     d1 = Poisson(4.2)
     d2 = Categorical([0.1, 0.2, 0.3, 0.4])
+    coup = MaximalCoupling(d1, d2)
+    # Dimensionality checks
+    @test length(coup) == 1
+    @test length(rand(coup)[1]) == 1
+    @test length(rand(coup)[2]) == 1
+    @test size(rand(coup, 5)[1]) == size(rand(d1, 5))
+    @test size(rand(coup, 5)[2]) == size(rand(d2, 5))
+    @test size(rand(coup, 5)[1]) == (5,)
+    @test size(rand(coup, 5)[2]) == (5,)
+    pcouple = prob_couple(coup)
+
+    nsamples = 10^7
+    X, Y = rand(coup, nsamples)
+    frac_coupled = mean(X .== Y)
+    se = sqrt(pcouple  * (1-pcouple) / nsamples)
+    deviation = (pcouple - frac_coupled) / se
+    @test abs(deviation) < 5 
+    @test eltype(coup) == Int64
+    @test eltype(coup) == eltype(X)
+    @test eltype(coup) == eltype(Y)
+    @test eltype(coup) == eltype(rand(coup)[1])
+    @test eltype(coup) == eltype(rand(coup)[2])
+end
+
+@testset "Discrete Couplings - finite+infinite support" begin
+    # just switch the order
+    d1 = Categorical([0.1, 0.2, 0.3, 0.4])
+    d2 = Poisson(4.2)
+    coup = MaximalCoupling(d1, d2)
+    # Dimensionality checks
+    @test length(coup) == 1
+    @test length(rand(coup)[1]) == 1
+    @test length(rand(coup)[2]) == 1
+    @test size(rand(coup, 5)[1]) == size(rand(d1, 5))
+    @test size(rand(coup, 5)[2]) == size(rand(d2, 5))
+    @test size(rand(coup, 5)[1]) == (5,)
+    @test size(rand(coup, 5)[2]) == (5,)
+    pcouple = prob_couple(coup)
+
+    nsamples = 10^7
+    X, Y = rand(coup, nsamples)
+    frac_coupled = mean(X .== Y)
+    se = sqrt(pcouple  * (1-pcouple) / nsamples)
+    deviation = (pcouple - frac_coupled) / se
+    @test abs(deviation) < 5 
+    @test eltype(coup) == Int64
+    @test eltype(coup) == eltype(X)
+    @test eltype(coup) == eltype(Y)
+    @test eltype(coup) == eltype(rand(coup)[1])
+    @test eltype(coup) == eltype(rand(coup)[2])
+end
+
+@testset "Discrete Couplings - infinite support" begin
+    # both infinite support
+    d1 = Geometric(0.1)
+    d2 = Poisson(4.2)
     coup = MaximalCoupling(d1, d2)
     # Dimensionality checks
     @test length(coup) == 1
