@@ -35,7 +35,7 @@ function _rand_continuous(p::D1, q::D2) where {D1 <: Distribution, D2 <: Distrib
             end
         end
         if !found_uncoupled
-            warn("failed to find uncoupled sample between ", p, "\n and \n", q)
+            @warn("failed to find uncoupled sample between ", p, "\n and \n", q)
             # just return a coupled sample after all
             Y = X
         end
