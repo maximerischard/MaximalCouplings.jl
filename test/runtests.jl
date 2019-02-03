@@ -4,6 +4,24 @@ using Test
 using Random
 using Random: rand, rand!
 using LinearAlgebra: norm
+import HypothesisTests
+import StatsBase
+
+function test_distr(x, d::ContinuousDistribution)
+    test = HypothesisTests.ApproximateOneSampleKSTest(x, d)
+    pval = HypothesisTests.pvalue(test)
+    return pval
+end
+function test_distr(x, d::DiscreteDistribution)
+    theta0 = pdf.(d, minimum(x):maximum(x))
+    theta0 ./= sum(theta0)
+    contingency = StatsBase.counts(x)
+    test = HypothesisTests.ChisqTest(contingency, theta0)
+    pval = HypothesisTests.pvalue(test)
+    return pval
+end
+
+
 
 # For two distributions that are the same, the maximal coupling should
 # be perfect.
@@ -17,6 +35,7 @@ using LinearAlgebra: norm
         end
     end # testset
 end # testset
+
 
 # Probabilistic test that the probability given by `prob_couple`
 # matches the fraction of samples yielded by `rand` that are coupled.
@@ -60,6 +79,12 @@ end # testset
     @test eltype(coup) == eltype(Y)
     @test eltype(coup) == eltype(rand(coup)[1])
     @test eltype(coup) == eltype(rand(coup)[2])
+
+    # KS test on the marginals
+    @test test_distr(X[1,:], Normal(mean(d1)[1], √d1.Σ.mat[1,1])) > 1e-5
+    @test test_distr(X[2,:], Normal(mean(d1)[2], √d1.Σ.mat[2,2])) > 1e-5
+    @test test_distr(Y[1,:], LogNormal(d2.normal.μ[1], √d2.normal.Σ.mat[1,1])) > 1e-5
+    @test test_distr(Y[2,:], LogNormal(d2.normal.μ[2], √d2.normal.Σ.mat[2,2])) > 1e-5
 end
 @testset "Discrete Couplings - finite+finite support " begin
     d1 = Categorical([0.05, 0.05, 0.2, 0.3, 0.3, 0.1])
@@ -86,6 +111,9 @@ end
     @test eltype(coup) == eltype(Y)
     @test eltype(coup) == eltype(rand(coup)[1])
     @test eltype(coup) == eltype(rand(coup)[2])
+
+    @test test_distr(X, d1) > 1e-5
+    @test test_distr(Y, d2) > 1e-5
 end
 
 @testset "Discrete Couplings - infinite+finite support " begin
@@ -113,6 +141,9 @@ end
     @test eltype(coup) == eltype(Y)
     @test eltype(coup) == eltype(rand(coup)[1])
     @test eltype(coup) == eltype(rand(coup)[2])
+
+    @test test_distr(X, d1) > 1e-5
+    @test test_distr(Y, d2) > 1e-5
 end
 
 @testset "Discrete Couplings - finite+infinite support" begin
@@ -170,9 +201,12 @@ end
     @test eltype(coup) == eltype(rand(coup)[1])
     @test eltype(coup) == eltype(rand(coup)[2])
 end
+
 @testset "Multivariate Normal" begin
     mvn1=MultivariateNormal([1., 1.], [[3., 1.]'; [1., 4.]'])
     mvn2=MultivariateNormal([1.5, 0.8], [[3., 1.]'; [1., 4.]'])
+    @test MaximalCouplings.samecov(mvn1, mvn2)
+
     coup = MaximalCoupling(mvn1, mvn2)
     # Dimensionality checks
     @test length(coup) == 2
@@ -182,6 +216,7 @@ end
     @test size(rand(coup, 5)[2]) == size(rand(mvn2, 5))
     @test size(rand(coup, 5)[1]) == (2, 5)
     @test size(rand(coup, 5)[2]) == (2, 5)
+
 
     nsamples = 10^5
     pcouple_BouRabee = mean(isequal(MaximalCouplings._rand_BouRabee(mvn1, mvn2)...) for _ in 1:nsamples)
@@ -199,4 +234,13 @@ end
     vdist_continus = var(dist(MaximalCouplings._rand_continuous(mvn1, mvn2)...) for _ in 1:nsamples)
     mdist_SE = sqrt( (vdist_BouRabee + vdist_continus)/2 / nsamples)
     @test mdist_BouRabee < mdist_continus - 4*mdist_SE
+
+    # test samples come from the correct distribution
+    nsamples = 10^5
+    X, Y = rand(coup, nsamples)
+    marginal(d, j) = Normal(d.μ[j], √d.Σ.mat[j,j])
+    @test test_distr(X[1,:], marginal(mvn1, 1)) > 1e-5
+    @test test_distr(X[2,:], marginal(mvn1, 2)) > 1e-5
+    @test test_distr(Y[1,:], marginal(mvn2, 1)) > 1e-5
+    @test test_distr(Y[2,:], marginal(mvn2, 2)) > 1e-5
 end

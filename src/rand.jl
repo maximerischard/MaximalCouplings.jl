@@ -85,7 +85,7 @@ function _rand_BouRabee(p::D, q::D) where {D <: ContinuousMultivariateDistributi
     Σ = Σp
     s_distr = standard(p)
     μp, μq = mean(p), mean(q)
-    z = whiten(Σ, μq-μp)
+    z = whiten(Σ, μp-μq)
     e = z/norm(z)
 
     Ẋ = rand(s_distr)
@@ -93,6 +93,7 @@ function _rand_BouRabee(p::D, q::D) where {D <: ContinuousMultivariateDistributi
     logU = -randexp()
 
     Ẏ = Ẋ + z
+    @assert μq+unwhiten(Σ, Ẏ) ≈ X
     logsẊ = logpdf(s_distr, Ẋ)
     logsẎ = logpdf(s_distr, Ẏ)
     local Y
@@ -119,6 +120,13 @@ function rand(coup::MaximalCoupling{D1,D2}) where {D1<:DiscreteDistribution, D2<
         ny = length(coup.q)
         Y, X = _rand_discrete(coup.q, coup.p)
         return X, Y
+    else
+        return _rand_continuous(coup.p, coup.q)
+    end
+end
+function rand(coup::MaximalCoupling{D1,D2}) where {D1<:MvNormal, D2<:MvNormal}
+    if samecov(coup.p, coup.q)
+        return _rand_BouRabee(coup.p, coup.q)
     else
         return _rand_continuous(coup.p, coup.q)
     end
