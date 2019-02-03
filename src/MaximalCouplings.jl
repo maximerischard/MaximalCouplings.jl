@@ -6,6 +6,8 @@ using Random
 import Random: rand, rand!
 import Base: length, eltype
 using StatsBase: Weights
+using PDMats: whiten, unwhiten, AbstractPDMat
+using LinearAlgebra: dot, norm
 
 include("types.jl")
 include("rand.jl")

@@ -70,6 +70,42 @@ function _rand_discrete(p::D1, q::D2) where {D1 <: DiscreteDistribution, D2 <: D
     return X, Y
 end
 
+get_Σ_PD(d::MvNormal) = d.Σ
+standard(d::MvNormal) = MvNormal(length(d), 1.0)
+samecov(d1::MvNormal, d2::MvNormal) = d1.Σ.chol == d2.Σ.chol
+
+"""
+    Obtain coupled random numbers using the algorithm of Bou-Rabee et al. [2018].
+    See also Jacob et al. 2018, section 4.1 on Sampling from maximal couplings.
+    I follow the procedure and notation used in the Jacob paper below.
+"""
+function _rand_BouRabee(p::D, q::D) where {D <: ContinuousMultivariateDistribution}
+    @assert samecov(p, q)
+    Σp, Σq = get_Σ_PD(p), get_Σ_PD(q)
+    Σ = Σp
+    s_distr = standard(p)
+    μp, μq = mean(p), mean(q)
+    z = whiten(Σ, μq-μp)
+    e = z/norm(z)
+
+    Ẋ = rand(s_distr)
+    X = μp + unwhiten(Σ, Ẋ)
+    logU = -randexp()
+
+    Ẏ = Ẋ + z
+    logsẊ = logpdf(s_distr, Ẋ)
+    logsẎ = logpdf(s_distr, Ẏ)
+    local Y
+    if logU <= ((logsẎ - logsẊ) + eps())
+        Y = X
+    else
+        Ẏ = Ẋ - 2*dot(e, Ẋ)*e
+        Y = μq + unwhiten(Σ, Ẏ)
+    end
+    return X, Y
+end
+        
+
 function rand(coup::MaximalCoupling{D1,D2}) where {D1, D2}
     _rand_continuous(coup.p, coup.q)
 end

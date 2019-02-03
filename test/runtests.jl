@@ -3,6 +3,7 @@ using Distributions
 using Test
 using Random
 using Random: rand, rand!
+using LinearAlgebra: norm
 
 # For two distributions that are the same, the maximal coupling should
 # be perfect.
@@ -168,4 +169,34 @@ end
     @test eltype(coup) == eltype(Y)
     @test eltype(coup) == eltype(rand(coup)[1])
     @test eltype(coup) == eltype(rand(coup)[2])
+end
+@testset "Multivariate Normal" begin
+    mvn1=MultivariateNormal([1., 1.], [[3., 1.]'; [1., 4.]'])
+    mvn2=MultivariateNormal([1.5, 0.8], [[3., 1.]'; [1., 4.]'])
+    coup = MaximalCoupling(mvn1, mvn2)
+    # Dimensionality checks
+    @test length(coup) == 2
+    @test length(rand(coup)[1]) == 2
+    @test length(rand(coup)[2]) == 2
+    @test size(rand(coup, 5)[1]) == size(rand(mvn1, 5))
+    @test size(rand(coup, 5)[2]) == size(rand(mvn2, 5))
+    @test size(rand(coup, 5)[1]) == (2, 5)
+    @test size(rand(coup, 5)[2]) == (2, 5)
+
+    nsamples = 10^5
+    pcouple_BouRabee = mean(isequal(MaximalCouplings._rand_BouRabee(mvn1, mvn2)...) for _ in 1:nsamples)
+    pcouple_continus = mean(isequal(MaximalCouplings._rand_continuous(mvn1, mvn2)...) for _ in 1:nsamples)
+    pcouple_diff = abs(pcouple_BouRabee-pcouple_continus)
+
+    pcouple_SE = sqrt(pcouple_continus * (1-pcouple_continus) / nsamples)
+    @test pcouple_diff < pcouple_SE*10
+
+    # test mean distance is lower with Bou-Rabee by a significant amount
+    dist(x1,x2) = norm(x1-x2)
+    mdist_BouRabee = mean(dist(MaximalCouplings._rand_BouRabee(mvn1, mvn2)...) for _ in 1:nsamples)
+    mdist_continus = mean(dist(MaximalCouplings._rand_continuous(mvn1, mvn2)...) for _ in 1:nsamples)
+    vdist_BouRabee = var(dist(MaximalCouplings._rand_BouRabee(mvn1, mvn2)...) for _ in 1:nsamples)
+    vdist_continus = var(dist(MaximalCouplings._rand_continuous(mvn1, mvn2)...) for _ in 1:nsamples)
+    mdist_SE = sqrt( (vdist_BouRabee + vdist_continus)/2 / nsamples)
+    @test mdist_BouRabee < mdist_continus - 4*mdist_SE
 end
